@@ -1,0 +1,30 @@
+#!/bin/bash
+
+do_passwd(){
+	local PASSWD=${!#}
+	echo "#!/usr/bin/expect" 		> ~/tools/.auto_passwd_tmp
+	echo "set timeout 30" 			>> ~/tools/.auto_passwd_tmp
+	if [ $# = 4 ] ; then
+		echo "spawn $1 $2" 			>> ~/tools/.auto_passwd_tmp
+		echo "expect \"$3\"" 			>> ~/tools/.auto_passwd_tmp
+		echo "send \"$4\r\"" 			>> ~/tools/.auto_passwd_tmp
+	fi
+	if [ $# = 5 ] ; then
+		echo "spawn $1 $2 $3" 			>> ~/tools/.auto_passwd_tmp
+		echo "expect \"$4\"" 			>> ~/tools/.auto_passwd_tmp
+		echo "send \"$5\r\"" 			>> ~/tools/.auto_passwd_tmp
+	fi
+	if [ $# = 6 ] ; then
+		echo "spawn $1 $2 $3 $4" 		>> ~/tools/.auto_passwd_tmp
+		echo "expect \"$5\"" 			>> ~/tools/.auto_passwd_tmp
+		echo "send \"$6\r\"" 			>> ~/tools/.auto_passwd_tmp
+	fi
+	if [ $# = 7 ] ; then
+		echo "spawn $1 $2 $3 $4 $5" 		>> ~/tools/.auto_passwd_tmp
+		echo "expect \"$6\"" 			>> ~/tools/.auto_passwd_tmp
+		echo "send \"$7\r\"" 			>> ~/tools/.auto_passwd_tmp
+	fi
+	echo "interact" 			>> ~/tools/.auto_passwd_tmp
+	chmod +x ~/tools/.auto_passwd_tmp
+	~/tools/.auto_passwd_tmp
+}

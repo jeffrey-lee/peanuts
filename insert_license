@@ -1,0 +1,8 @@
+#!/bin/bash
+shopt -s globstar nullglob extglob
+for i in **/*.@(cpp|h);do
+    if ! grep -q Copyright $i
+    then
+    cat ~/tools/copyright.txt $i >$i.new && mv $i.new $i
+    fi
+done

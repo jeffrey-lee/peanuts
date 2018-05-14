@@ -1,0 +1,31 @@
+#!/bin/bash
+
+print_help(){
+	echo "help : "
+	echo "    jump evn_id user [package]"
+}
+
+if [ $# -lt 2 ]; then
+	print_help
+fi
+
+ENV=$1
+USER=$2
+. tools_services
+if [[ "$USER" =~ "^[0-9]+$" ]];then  
+	USER=$(service_id_2_name $USER)
+fi
+
+PACKAGE=~/myrsync/$USER.tgz
+if [ ! -n $3 ] ; then
+	PACKAGE=$3
+fi
+
+. env_user_ip
+
+IP=$(get_env_user_ip $ENV $USER)
+PASSWORD=$(get_env_passwd $ENV)
+
+#scp $PACKAGE $USER@$IP:/data/$USER/
+. auto_passwd
+do_passwd scp $PACKAGE $USER@$IP:/data/$USER/ "$USER@$IP's password:" "$PASSWORD"

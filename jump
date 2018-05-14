@@ -1,0 +1,28 @@
+#!/bin/bash
+
+print_help(){
+	echo "help : "
+	echo "    jump evn_id user"
+}
+
+if [ $# -lt 2 ]; then
+	print_help
+	exit
+fi
+
+ENV=$1
+USER=$2
+
+. env_user_ip
+. tools_services
+
+if [[ "$USER" =~ "^[0-9]+$" ]];then  
+	USER=$(service_id_2_name $USER)
+fi
+
+
+IP=$(get_env_user_ip $ENV $USER)
+PASSWORD=$(get_env_passwd $ENV)
+
+. auto_passwd
+do_passwd ssh $USER@$IP "$USER's password" "$PASSWORD"

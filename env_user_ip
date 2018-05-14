@@ -1,0 +1,14 @@
+#!/bin/bash
+
+get_env_user_ip(){
+	local _env=$1
+	local _user=$2
+	case $_env in
+	esac
+}
+
+get_env_passwd(){
+	local _env=$1
+	case $_env in
+	esac
+}

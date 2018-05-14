@@ -1,0 +1,167 @@
+#!/bin/bash
+
+function get_service_name(){
+    local repository=`svn info | grep Repository | awk '{print $3}' | head -n 1`
+    let service_pos=`echo "$repository" | awk -F ''/'' '{printf "%d", length($0)-length($NF)}'`
+    local service_proj=${repository:$service_pos}
+    local service=${service_proj:0:-5}
+    echo $service
+}
+
+function get_branch_name(){
+    local old_svn_url=`svn info | grep URL | head -n 1 | awk '{print $2}'`
+    let old_branch_pos=`echo "$old_svn_url" | awk -F ''/'' '{printf "%d", length($0)-length($NF)}'`
+    local old_branch=${old_svn_url:$old_branch_pos}
+    echo $old_branch
+}
+
+function get_svn_url(){
+    echo `svn info | grep URL | grep -v Relative | awk '{print $2}'`
+}
+
+function check_svn_bak(){
+    if [ ! -d "../svn_bak" ]; then
+        mkdir ../svn_bak
+    fi
+}
+
+function get_svn_base(){
+    local service=$1
+    case $service in
+        "pay_proxy"             ) echo "svn+ssh://example.com/breetzli";;
+    esac
+}
+
+function msvn_create(){
+    local branch=$1
+    local service=$2
+    if [ -z "$service" ]; then
+        service=$(get_service_name)
+    fi
+    local cur_svn_url=$(get_svn_url)
+    echo $cur_svn_url
+    local svn_base=$(get_svn_base $service)
+    echo svn cp ${cur_svn_url} $svn_base/${service}_proj/branches/$branch -m "创建分支"
+    svn cp ${cur_svn_url} $svn_base/${service}_proj/branches/$branch -m "创建分支"
+}
+
+function msvn_merge(){
+    local branch=$1
+    if [ -z "$branch" ]; then
+        branch="trunk"
+    fi
+    local service=$(get_service_name)
+    local svn_base=$(get_svn_base $service)
+    local branch_dir=branches/$branch
+    if [ "trunk" == ${branch} ];then
+        branch_dir="trunk"
+    fi
+    echo svn merge $svn_base/${service}_proj/$branch_dir
+    svn merge ${cur_svn_url} $svn_base/${service}_proj/$branch_dir
+}
+
+function msvn_delete(){
+    local branch=$1
+    local service=$2
+    if [ -z "$service" ]; then
+        service=$(get_service_name)
+    fi
+    local svn_base=$(get_svn_base $service)
+    echo svn delete $svn_base/${service}_proj/branches/$branch -m "删除分支"
+    svn delete $svn_base/${service}_proj/branches/$branch -m "删除分支"
+}
+
+function msvn_co(){
+    local branch=$1
+    local service=$2
+    local svn_base=$(get_svn_base $service)
+    if [ $branch != "trunk" ]; then
+        branch=branches/${branch}
+    fi
+    if [ -d "./svn_bak/${branch}_${service}" ]; then
+            cp -rf ./svn_bak/${branch}_${service} ${service}
+        return
+    fi
+    echo svn co $svn_base/${service}_proj/${branch} $service
+    svn co $svn_base/${service}_proj/${branch} $service
+}
+
+function msvn_commit_local(){
+    local service=$(get_service_name)
+    local old_branch=$(get_branch_name)
+    check_svn_bak
+    rm -rf ../svn_bak/${old_branch}_$service
+    cp -rf ../$service ../svn_bak/${old_branch}_$service
+}
+
+function msvn_switch(){
+    local branch=$1
+    local service=$(get_service_name)
+    local svn_base=$(get_svn_base $service)
+    local old_branch=$(get_branch_name)
+    check_svn_bak
+    cd ..
+    if [ -d "./svn_bak/${old_branch}_${service}" ]; then
+        rm -rf ./svn_bak/${old_branch}_${service}
+    fi
+    mv ./$service ./svn_bak/${old_branch}_${service}
+    if [ "${old_branch}" == "${branch}" ]; then
+        echo "the same, do nothing ..."
+        cd -
+        return
+    fi
+    echo "switch to ${service}:${branch} ..."
+    if [ -d "./svn_bak/${branch}_${service}" ]; then
+        cp -rf ./svn_bak/${branch}_${service} ./${service}
+    else
+        local branch_dir=branches/${branch}
+        if [ "$branch" == "trunk" ]; then
+            branch_dir=${branch}
+        fi
+        echo svn co ${svn_base}/${service}_proj/$branch_dir ${service}
+        svn co ${svn_base}/${service}_proj/$branch_dir ./${service}
+    fi
+    cd -
+}
+
+function msvn_list(){
+    local service=$(get_service_name)
+    local svn_base=$(get_svn_base $service)
+    svn list $svn_base/${service}_proj/branches/${branch}
+}
+
+function msvn_help(){
+    echo "msvn option [args ...]"
+    echo "msvn -h                       print help info"
+    echo "msvn -cp branch [service]     create a branch for serivce"
+    echo "msvn -co branch [service]     check out a branch for serivce to local"
+    echo "msvn -rm branch [service]     remove a branch for serivce"
+    echo "msvn -cl                      commit a branch for serivce to local"
+    echo "msvn -s branch                switch branch for current service"
+    echo "msvn -l                       list all branches for current service"
+    echo "msvn merge [branch]           merge from branch to current branch, if branch is not assigned, merge from trunk"
+}
+
+function check_args(){
+    if [ $1 != $2 ]; then
+        msvn_help
+        return 1
+    fi
+    return 0
+}
+
+if [ $# -lt 1 ]; then
+    msvn_help
+    return
+fi
+
+case $1 in
+    "-h"         ) msvn_help;;
+    "-cp"        ) msvn_create $2 $3;;
+    "-co"        ) msvn_co $2 $3;;
+    "-rm"        ) msvn_delete $2 $3;;
+    "-cl"        ) msvn_commit_local $2 $3;;
+    "-s"         ) msvn_switch $2;cd ..;cd -;;
+    "-l"         ) msvn_list;;
+    "merge"      ) msvn_merge $2;;
+esac

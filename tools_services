@@ -1,0 +1,23 @@
+#!/bin/bash
+
+function services(){
+	echo "cashier_services:"
+	echo "1     business_manage"
+}
+
+function service_name_2_id(){
+	local user=$1
+	case $user in
+		"business_manage"		) echo 1;;
+	esac
+
+}
+
+
+function service_id_2_name(){
+	local user=$1
+	case $user in
+		1 ) echo "business_manage"		;;
+	esac
+
+}
